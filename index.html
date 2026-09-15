@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>GAMBLING: THE EXPERIENCE.</title>
+    <meta name="description" content="THE ULTIMATE SIMULATION OF GAMBLING.">
+    <meta name="author" content="beachweak">
+    <meta property="og:title" content="GAMBLING: THE EXPERIENCE">
+    <meta property="og:description" content="THE ULTIMATE SIMULATION OF GAMBLING.">
+    <meta property="og:image" content="https://example.com/your-image.jpg">
+    <meta property="og:url" content="https://beachweak.github.io/gambling">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+    <style>
+        /* ---------- Base / scaling fix ----------
+           Everything below is sized in rem, and the root font-size is
+           tied to the viewport width with clamp(). That's the actual fix
+           for the "fine on Windows, zoomed in on Mac" issue: the old file
+           used fixed px values everywhere, which render at a fixed
+           physical size regardless of the screen's own resolution. A
+           Windows laptop with a 1920px-wide display and a MacBook with a
+           1440px-wide display would show those same px values as very
+           different proportions of the screen. Scaling everything off
+           the root rem value keeps it visually consistent across both. */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: clamp(13px, 0.85vw + 8px, 17px);
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+            text-align: center;
+            background-image: linear-gradient(rgba(16, 8, 24, 0.48), rgba(8, 10, 24, 0.58)), url("assets/bg.png");
+            background-color: #10101a;
+            background-repeat: no-repeat, repeat;
+            background-size: 100% 100%, auto;
+            background-position: center, 0 0;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-x: hidden;
+        }
+
+        .heading-container {
+            margin-top: 0.5rem;
+            margin-bottom: -0.35rem;
+            transform: translateY(-2rem);
+        }
+
+        .heading-container img {
+            max-width: min(70vw, 420px);
+            height: auto;
+        }
+
+        /* ---------- Top-left stack: balance above inventory ---------- */
+
+        #topLeftPanel {
+            position: fixed;
+            top: 1.25rem;
+            left: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.6rem;
+            z-index: 30;
+            max-width: 15rem;
+        }
+
+        #balanceCounter {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #f5f5f7;
+            background: linear-gradient(135deg, #20202d, #12121b);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.75rem;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 0.25rem 0.6rem rgba(0, 0, 0, 0.35);
+            transition: color 0.3s, box-shadow 0.3s;
+        }
+
+        #balanceCounter.negative {
+            color: #ff6b6b;
+            box-shadow: 0 0 0.9rem rgba(255, 60, 60, 0.55);
+        }
+
+        #inventoryContainer {
+            background: rgba(18, 18, 27, 0.94);
+            color: #e8e8ee;
+            padding: 0.7rem 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.65rem;
+            max-height: min(60vh, 32rem);
+            width: 100%;
+            overflow-y: auto;
+            text-align: left;
+            border: 2px solid #55556a;
+            box-shadow: 0.18rem 0.18rem 0 #0d0d12;
+        }
+
+        #luckMeterContainer {
+            width: 100%;
+            background: rgba(18, 18, 27, 0.94);
+            color: #e8e8ee;
+            padding: 0.65rem 0.8rem 0.7rem;
+            border: 2px solid #55556a;
+            border-radius: 0.65rem;
+            box-shadow: 0.18rem 0.18rem 0 #0d0d12;
+        }
+
+        #luckMeterHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        #luckMeterTitle {
+            font-size: 0.78rem;
+            font-weight: bold;
+        }
+
+        #luckMeterStatus {
+            font-size: 0.62rem;
+            color: #9696a5;
+            text-align: right;
+        }
+
+        #luckMeterTrack {
+            width: 100%;
+            height: 0.7rem;
+            background: #0d0d12;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        #luckMeterFill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #59f08f);
+            border-radius: inherit;
+            transition: width 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        #luckMeterFill.active {
+            box-shadow: 0 0 0.7rem rgba(46, 204, 113, 0.65);
+        }
+
+        #inventoryContainer h2 {
+            margin: 0 0 0.35rem 0;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        #inventoryContainer .warning {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.65rem;
+            color: #9696a5;
+            text-align: left;
+        }
+
+        #inventoryList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+
+        #inventoryList li {
+            margin-bottom: 0.3rem;
+            font-size: 0.7rem;
+            color: #c9c9d6;
+            text-align: left;
+        }
+
+        #inventoryList li a {
+            color: #c98cff;
+            text-decoration: underline;
+        }
+
+        #allItemsNote {
+            font-size: 0.7rem;
+            text-align: left;
+            margin-top: 0.5rem;
+        }
+
+        /* ---------- Restart / mute controls, top-right ---------- */
+
+        #topRightControls {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 30;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        #muteToggle,
+        #restartButton {
+            font-family: inherit;
+            font-size: 0.85rem;
+            border: none;
+            border-radius: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            background: rgba(20, 20, 30, 0.92);
+            color: #f5f5f7;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0.2rem 0.4rem rgba(0, 0, 0, 0.3);
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+
+        #muteToggle:hover,
+        #restartButton:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        #muteToggle:active,
+        #restartButton:active {
+            transform: scale(0.94);
+        }
+
+        #restartButton {
+            display: none;
+            background: linear-gradient(135deg, #ff5f6d, #b82e39);
+        }
+
+        /* ---------- Loot box ---------- */
+
+        #lootBoxContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(13, 13, 20, 0.95);
+            color: #f2f2f7;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: clamp(1.5rem, 4vw, 2.75rem);
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.3);
+            width: min(92vw, 26rem);
+            transform: translateY(-2rem);
+        }
+
+        #lootBoxVisual {
+            width: min(60vw, 15rem);
+            height: min(60vw, 15rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        #lootBoxImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #lootBoxVideo {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            height: auto;
+            border: none;
+            border-radius: 0.5rem;
+            display: none;
+        }
+
+        #lootBoxVisual.video-mode {
+            width: min(78vw, 22rem);
+            height: auto;
+        }
+
+        #lootBoxVisual.shaking #lootBoxImage {
+            animation: chestShake 0.35s ease-in-out infinite;
+        }
+
+        @keyframes chestShake {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            25% {
+                transform: rotate(-4deg) scale(1.02);
+            }
+
+            50% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            75% {
+                transform: rotate(4deg) scale(1.02);
+            }
+
+            100% {
+                transform: rotate(0deg) scale(1);
+            }
+        }
+
+        #lootBoxVisual.reveal #lootBoxImage,
+        #lootBoxVisual.reveal #lootBoxVideo {
+            animation: rewardPop 0.5s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        @keyframes rewardPop {
+            0% {
+                transform: scale(0.3) rotate(-8deg);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.12) rotate(3deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .particle {
+            position: fixed;
+            color: #ff5252;
+            font-weight: bold;
+            font-size: 1.1rem;
+            z-index: 40;
+            pointer-events: none;
+            animation: particleAnimation 1.4s ease-out forwards;
+        }
+
+        @keyframes particleAnimation {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-2.5rem);
+            }
+        }
+
+        #openButton {
+            background: #7b2cbf;
+            color: white;
+            padding: 0.6rem 1.75rem;
+            font-size: 1.15rem;
+            border: none;
+            border-radius: 1.25rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 0.3rem;
+            box-shadow: 0.16rem 0.16rem 0 #35115a;
+        }
+
+        #openButton:hover {
+            transform: translateY(-3px) scale(1.06);
+            box-shadow: 0 0.5rem 0.9rem rgba(97, 0, 224, 0.5);
+        }
+
+        #openButton:active {
+            transform: scale(0.95);
+        }
+
+        #meImage {
+            position: fixed;
+            bottom: -0rem;
+            right: 1rem;
+            z-index: 20;
+            max-width: 18vw;
+            height: auto;
+        }
+
+        #projectImage {
+            position: fixed;
+            bottom: 14rem;
+            right: 1rem;
+            z-index: 20;
+            max-width: 16vw;
+            height: auto;
+        }
+
+        .rewardText {
+            font-size: 0.8rem;
+            color: #b7b7c5;
+            min-height: 1.3rem;
+        }
+
+        .rewardText.legendary {
+            color: #ffd84d;
+            font-weight: bold;
+            background: linear-gradient(
+                90deg,
+                #fff3a6 0%,
+                #ffd84d 22%,
+                #fff8c2 42%,
+                #f2b632 62%,
+                #fff3a6 82%,
+                #ffd84d 100%
+            );
+            background-size: 220% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: legendaryShimmer 1.8s linear infinite;
+            filter: drop-shadow(0 0 0.25rem rgba(255, 216, 77, 0.25));
+        }
+
+        @keyframes legendaryShimmer {
+            0% {
+                background-position: 220% 0;
+            }
+            100% {
+                background-position: -220% 0;
+            }
+        }
+
+        img[src="assets/gambling.png"] {
+            position: static;
+            display: block;
+            max-width: min(70vw, 420px);
+            max-height: 20vh;
+            height: auto;
+            margin: 0 auto 1rem auto;
+            z-index: auto;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0.6rem;
+            left: 0.6rem;
+            color: #aaaab8;
+            font-family: inherit;
+            text-align: left;
+            line-height: 1.3;
+            font-size: 0.65rem;
+            z-index: 5;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        /* ---------- Completion modal ---------- */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: #15151f;
+            color: #f2f2f7;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            padding: 1.75rem;
+            width: min(90vw, 24rem);
+            text-align: center;
+            box-shadow: 0 0.6rem 1.5rem rgba(0, 0, 0, 0.4);
+            animation: rewardPop 0.4s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .modal-box h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+
+        .modal-box p {
+            font-size: 0.9rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .modal-actions button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 0.6rem;
+            padding: 0.55rem 1.1rem;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        .modal-actions button:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        #modalYes {
+            background: #7b2cbf;
+            color: #fff;
+        }
+
+        #modalNo {
+            background: #302b3d;
+            color: #f2f2f7;
+        }
+
+        /* ---------- Confetti ---------- */
+
+        #confettiLayer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 90;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            top: -1.5rem;
+            width: 0.6rem;
+            height: 1rem;
+            opacity: 0.9;
+            animation-name: confettiFall;
+            animation-timing-function: cubic-bezier(.25, .46, .45, .94);
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(105vh) rotate(540deg);
+                opacity: 0.4;
+            }
+        }
+
+        /* ---------- Secret developer menu ---------- */
+
+        #devMenu {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.72);
+            z-index: 200;
+        }
+
+        #devMenu.open {
+            display: flex;
+        }
+
+        #devMenuBox {
+            width: min(92vw, 30rem);
+            max-height: 88vh;
+            overflow-y: auto;
+            padding: 1.25rem;
+            background: #211b2d;
+            color: #f7efff;
+            border: 3px dotted #b66cff;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+            text-align: left;
+        }
+
+        #devMenuBox h2 {
+            margin: 0 0 0.35rem;
+            font-size: 1.1rem;
+        }
+
+        #devMenuBox p {
+            margin: 0 0 1rem;
+            color: #9f9fad;
+            font-size: 0.72rem;
+        }
+
+        .dev-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .dev-row select,
+        .dev-row button,
+        #devClose {
+            font-family: inherit;
+            font-size: 0.78rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.5rem;
+            padding: 0.45rem 0.65rem;
+        }
+
+        .dev-row select {
+            min-width: 0;
+            flex: 1;
+            background: #30263d;
+            color: #fff;
+        }
+
+        .dev-row button,
+        #devClose {
+            cursor: pointer;
+            background: linear-gradient(135deg, #47335b, #302447);
+            color: #fff;
+        }
+
+        .dev-row button:hover,
+        #devClose:hover {
+            background: linear-gradient(135deg, #604278, #44325d);
+        }
+
+        #devClose {
+            width: 100%;
+            margin-top: 0.4rem;
+        }
+
+        /* ---------- Mobile ---------- */
+
+        @media (max-width: 700px) {
+            body {
+                justify-content: flex-start;
+                padding-top: 1rem;
+            }
+
+            .heading-container {
+                margin-top: 2.5rem;
+                transform: translateY(-1rem);
+            }
+
+            img[src="assets/gambling.png"] {
+                position: static;
+                max-width: 60vw;
+                max-height: none;
+                margin: 0 auto;
+                display: block;
+            }
+
+            #topLeftPanel {
+                position: static;
+                margin: 0 auto 0.75rem auto;
+                width: min(92vw, 26rem);
+                max-width: none;
+            }
+
+            #inventoryContainer {
+                max-height: 12rem;
+            }
+
+            #luckMeterContainer {
+                margin-top: 0.15rem;
+            }
+
+            #projectImage,
+            #meImage {
+                display: none;
+            }
+
+            #lootBoxContainer {
+                margin-bottom: 2rem;
+                transform: translateY(-1rem);
+            }
+
+            #lootBoxVisual.video-mode {
+                width: min(88vw, 24rem);
+            }
+
+            footer {
+                position: static;
+                margin-top: 1rem;
+                text-align: center;
+                color: #444;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <audio id="bgMusic" loop preload="auto">
+        <source src="assets/mus_gambling.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="topRightControls">
+        <button id="muteToggle" aria-label="Toggle music">🔊</button>
+        <button id="restartButton">Restart</button>
+    </div>
+
+    <div class="heading-container">
+        <img src="assets/gambling.png" alt="Gambling: The Experience">
+    </div>
+
+    <div id="topLeftPanel">
+        <div id="balanceCounter">Balance: $<span id="balanceAmount">100</span></div>
+
+        <div id="inventoryContainer">
+            <h2>Inventory <span id="inventoryCounter">(0/100)</span></h2>
+            <p class="warning"><strong>Warning:</strong> your inventory resets on refresh.</p>
+            <ul id="inventoryList"></ul>
+        </div>
+
+        <div id="luckMeterContainer">
+            <div id="luckMeterHeader">
+                <span id="luckMeterTitle">Luck</span>
+                <span id="luckMeterStatus">0 / 15</span>
+            </div>
+            <div id="luckMeterTrack">
+                <div id="luckMeterFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <img id="projectImage" src="assets/project.png" alt="">
+    <img id="meImage" src="assets/me.gif" alt="hiiiii">
+
+    <div id="lootBoxContainer">
+        <div id="lootBoxVisual">
+            <img id="lootBoxImage" src="assets/lootboxclosed.gif" alt="Loot Box">
+            <iframe id="lootBoxVideo" src="" title="mystery item" allow="autoplay; encrypted-media"
+                allowfullscreen></iframe>
+        </div>
+        <button id="openButton" onclick="openLootBox()">Open</button>
+        <p class="rewardText" id="openingText"></p>
+    </div>
+
+    <div id="devMenu" aria-hidden="true">
+        <div id="devMenuBox" role="dialog" aria-modal="true" aria-labelledby="devMenuTitle">
+            <h2 id="devMenuTitle">Developer Menu</h2>
+            <p>Secret mode enabled. Changes are temporary and reset on refresh.</p>
+            <div class="dev-row">
+                <select id="devItemSelect" aria-label="Item to add"></select>
+                <button id="devAddItem">Add item</button>
+            </div>
+            <div class="dev-row">
+                <button id="devAddRandom">Add random item</button>
+                <button id="devAddAll">Add all items</button>
+            </div>
+            <div class="dev-row">
+                <button id="devTriggerAll">Trigger all items animation + prompt</button>
+            </div>
+            <button id="devClose">Close</button>
+        </div>
+    </div>
+
+    <div id="confettiLayer"></div>
+
+    <div id="completionModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h2>You've won!</h2>
+            <p>I like the cut of your gib, you've unlocked all 75 items. Wanna reset your inventory and play again?</p>
+            <div class="modal-actions">
+                <button id="modalYes">Yes, reset</button>
+                <button id="modalNo">No, keep it</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Version v6.0204.28341.FACTY</p>
+        <p>Artwork of YOURS TRULY & lootbox assets by @rayisoflight</p>
+        <p>Made with love by eccojacks, just for you FACTCORD!</p>
+    </footer>
+
+    <script>
+        /* =========================================================
+           LOOT TABLE
+           Give each item a "chance" between 0 and 1 (e.g. 0.01 = 1%,
+           very rare; 0.5 = 50%, very common). You don't need the
+           chances to add up to 1 — whatever isn't accounted for by
+           named items automatically becomes the chance of rolling
+           "Nothing". Just add more objects to this array as you add
+           items; everything else (inventory list, counters, the
+           "collected everything" check) reads from its length
+           automatically.
+        ========================================================= */
+
+        const LOOT_ITEMS = [
+            // -- common tier --
+            { name: "A Job at McDonald's", image: "assets/mc.png", chance: 0.025 },
+            { name: "Salmon", image: "assets/salmon.png", chance: 0.025 },
+            { name: "£3", image: "assets/3quid.png", chance: 0.025 },
+            { name: "Crazy Aaron's Thinking Putty", image: "assets/putty.png", chance: 0.025 },
+            { name: "Huawei WiFi Router", image: "assets/huawei.png", chance: 0.025 },
+            { name: "Loose Drillbit", image: "assets/drillbit.png", chance: 0.025 },
+            { name: "Depressed Red Ball", image: "assets/red.png", chance: 0.025 },
+            { name: "Chinese SimpleLife Steam Key", image: "assets/chinese.png", chance: 0.025 },
+            { name: "Dinko Toy", image: "assets/dinko.png", chance: 0.025 },
+            { name: "Red Play-Doh", image: "assets/playdoh.png", chance: 0.025 },
+            { name: "Reese's Cup (Singular)", image: "assets/reece.png", chance: 0.025 },
+            { name: "Rainbow Wriggly Worm", image: "assets/worm.png", chance: 0.025 },
+            { name: "$5", image: "assets/fivedollar.png", chance: 0.025 },
+            { name: "Roomba", image: "assets/roomba.png", chance: 0.025 },
+            { name: "Devilled Eggs", image: "assets/eggs.jpeg", chance: 0.025 },
+            { name: "Walgreens", image: "assets/walgreens.png", chance: 0.025 },
+            { name: "Loss", image: "assets/loss.jpg", chance: 0.025 },
+            { name: "Helmet", image: "assets/helmet.png", chance: 0.025 },
+            { name: "Verity", image: "assets/verity.webp", chance: 0.025 },
+            { name: "Exeggcute", image: "assets/exeggcute.png", chance: 0.025 },
+            { name: "Seagull", image: "assets/seagull.jpeg", chance: 0.025 },
+            { name: "Ray-Style Hand Tossed Domino's Pizza", image: "assets/za.png", chance: 0.025 },
+            { name: "Do Factory", image: "assets/do.jpg", chance: 0.025 },
+            { name: "Jeff Bread", image: "assets/jeff.jpg", chance: 0.025 },
+            { name: "A Delicious Meal", image: "assets/meal.jpeg", chance: 0.025 },
+
+            // -- uncommon tier --
+            { name: "Love", image: "assets/love.png", chance: 0.012 },
+            { name: "IBM ThinkPad 700", image: "assets/thinkpad.png", chance: 0.012 },
+            { name: "$15 Subway Gift Card", image: "assets/subway.png", chance: 0.012 },
+            { name: "AFX - Analogue Bubblebath Vol 3", image: "assets/afx.png", chance: 0.012 },
+            { name: "Pim Pimling from Smiling Friends", image: "assets/pim.png", chance: 0.012 },
+            { name: "Charlie Dompler from Smiling Friends", image: "assets/charlie.png", chance: 0.012 },
+            { name: "Sean Booth from Autechre", image: "assets/sean.png", chance: 0.012 },
+            { name: "Horace", image: "assets/horace.jpg", chance: 0.012 },
+            { name: "John Linnell", image: "assets/linnell.jpg", chance: 0.012 },
+            { name: "Brennan Lee Mulligan", image: "assets/br.jpg", chance: 0.012 },
+            { name: "Facty", image: "assets/facty.png", chance: 0.012 },
+            { name: "Lightbulb", image: "assets/lightbulb.png", chance: 0.012 },
+            { name: "Martian", image: "assets/martian.png", chance: 0.012 },
+            { name: "Ashwagandha Kid", image: "assets/ash.png", chance: 0.012 },
+            { name: "Retro Facty", image: "assets/factyold.png", chance: 0.012 },
+            { name: "Mickey Mouse Clubhouse", image: "assets/mickey.webp", chance: 0.012 },
+            { name: "Fried Rice: Benny's Way", image: "assets/rice.jpg", chance: 0.012 },
+            { name: "Straight White Malien", image: "assets/maliens.webp", chance: 0.012 },
+            { name: "This Might be a Wiki", image: "assets/wiki.png", chance: 0.012 },
+            { name: "Gnomes", image: "assets/gnomes.jpg", chance: 0.012 },
+            { name: "Cyn", image: "assets/cyn.jpeg", chance: 0.012 },
+            { name: "Pomni Plush", image: "assets/pomni.jpeg", chance: 0.012 },
+            { name: "One Billion Butterflies", image: "assets/butterfly.jpg", chance: 0.012 },
+            { name: "Kevin", image: "assets/kevin.png", chance: 0.012 },
+
+            // -- rare tier --
+            { name: "Bugbo Plush", image: "assets/bugbo.png", chance: 0.009 },
+            { name: "Mint-Condition Brand New Car", image: "assets/car.png", chance: 0.009 },
+            { name: "Autechre Exai 4xLP Vinyl Boxset", image: "assets/exai.png", chance: 0.009 },
+            { name: "Autechre 12xLP NTS Sessions Vinyl Boxset", image: "assets/nts.png", chance: 0.009 },
+            { name: "Mint-Condition iPhone 15", image: "assets/iphone.png", chance: 0.009 },
+            { name: "Nothing²", image: "assets/nothingsquared.png", chance: 0.009 },
+            { name: "True Love", image: "assets/truelove.png", chance: 0.009 },
+            { name: "Hatred", image: "assets/hatred.png", chance: 0.009 },
+            { name: "Lovely CRT Monitor :-)", image: "assets/crt.png", chance: 0.009 },
+            { name: "Benny Buckets", image: "assets/benny.png", chance: 0.009 },
+            { name: "John Flansburgh", image: "assets/john.jpg", chance: 0.009 },
+            { name: "The Forgotten Man", image: "assets/forgotten.png", chance: 0.009 },
+            { name: "Tenna Sticker", image: "assets/tenna.png", chance: 0.009 },
+            { name: "Time", image: "assets/time.jpg", chance: 0.009 },
+            { name: "Purple Ray", image: "assets/purpleray.png", chance: 0.009 },
+            { name: "My Boys", image: "assets/boys.png", chance: 0.009 },
+            { name: "Soyjak Soy Wojak Soyboy Funny Meme Wholesome Gapejak Throw Pillow", image: "assets/soyjak.png", chance: 0.009 },
+            { name: "Snood", image: "assets/snood.jpg", chance: 0.009 },
+            { name: "Treedweller", image: "assets/tree.jpeg", chance: 0.009 },
+            { name: "This is outrageous!", image: "assets/outrage.jpeg", chance: 0.009 },
+            { name: "DELTARUNE CHAPTER 3&4 All Yummies", image: "assets/yummies.png", chance: 0.009 },
+            { name: "God", image: "assets/god.png", chance: 0.009 },
+            { name: "Little Lewis", image: "assets/lewis.png", chance: 0.009 },
+            { name: "H.I.R.O.", image: "assets/hiro.jpeg", chance: 0.009 },
+
+            // -- ultra rare / secret --
+            { name: "?????????", video: "ejFYQxg4fU8", chance: 0.007 },
+        ];
+
+        const NOTHING_ITEM = { name: "Nothing", image: "assets/nothing.png", chance: 0.4 };
+        LOOT_ITEMS.push(NOTHING_ITEM);
+
+        const LUCK_CHARGE_ROLLS = 15;
+        const LUCK_ACTIVE_ROLLS = 5;
+        const LUCK_MISSING_ITEM_CHANCE = 0.55;
+
+        function rollWeightedItem(items) {
+            let totalWeight = 0;
+            for (const item of items) totalWeight += item.chance;
+
+            const r = Math.random() * totalWeight;
+            let cumulative = 0;
+            for (const item of items) {
+                cumulative += item.chance;
+                if (r < cumulative) return item;
+            }
+            return items[items.length - 1];
+        }
+
+        function rollLootItem() {
+            const allItems = LOOT_ITEMS;
+
+            // While luck is active, there is a flat 55% chance to receive one
+            // of the items the player has not unlocked yet. The missing item
+            // is selected uniformly so each missing item gets an equal shot.
+            if (luckRollsRemaining > 0) {
+                const missingItems = allItems.filter(function (item) {
+                    return !uniqueItems.has(item.name);
+                });
+
+                if (missingItems.length > 0 && Math.random() < LUCK_MISSING_ITEM_CHANCE) {
+                    return missingItems[Math.floor(Math.random() * missingItems.length)];
+                }
+            }
+
+            return rollWeightedItem(allItems);
+        }
+
+        const TOTAL_UNIQUE_ITEMS = LOOT_ITEMS.length;
+        const INVENTORY_DISPLAY_MAX = 75;
+
+        /* ========================================================= */
+
+        var balanceAmount = 100;
+
+        function updateBalance(amount) {
+            balanceAmount += amount;
+            var el = document.getElementById('balanceAmount');
+            el.textContent = balanceAmount;
+            document.getElementById('balanceCounter').classList.toggle('negative', balanceAmount < 0);
+        }
+
+        function createParticleAnimation(amount) {
+            var balanceCounter = document.getElementById('balanceAmount');
+            var position = balanceCounter.getBoundingClientRect();
+
+            var particle = document.createElement('div');
+            particle.textContent = "-$" + amount;
+            particle.className = 'particle';
+            particle.style.top = position.top + 'px';
+            particle.style.left = position.left + 'px';
+            document.body.appendChild(particle);
+
+            setTimeout(function () {
+                particle.remove();
+            }, 1400);
+        }
+
+        function scrollToBottom() {
+            var inventoryContainer = document.getElementById('inventoryContainer');
+            inventoryContainer.scrollTop = inventoryContainer.scrollHeight;
+        }
+
+        // ---- animated tiled background ----
+        var bgX = 0;
+        var bgY = 0;
+        var bgDirection = 1;
+        var bgSpeed = 95;
+        var bgLastTime = null;
+        var bgCycleStart = performance.now();
+        var bgFast = true;
+
+        function animateBackground(now) {
+            if (bgLastTime === null) bgLastTime = now;
+
+            var delta = Math.min((now - bgLastTime) / 1000, 0.05);
+            bgLastTime = now;
+
+            bgX += bgDirection * bgSpeed * delta;
+            bgY += bgDirection * bgSpeed * delta;
+
+            document.body.style.backgroundPosition = 'center, ' + Math.round(bgX) + 'px ' + Math.round(bgY) + 'px';
+
+            if (now - bgCycleStart >= 10000) {
+                bgCycleStart = now;
+                bgDirection *= -1;
+                bgFast = !bgFast;
+                bgSpeed = bgFast ? 95 : 24;
+            }
+
+            requestAnimationFrame(animateBackground);
+        }
+
+        requestAnimationFrame(animateBackground);
+
+        // ---- music ----
+        var bgMusic = document.getElementById('bgMusic');
+        var musicStartedOnce = false;
+        var musicPausedForSecret = false;
+
+        bgMusic.volume = 0.4;
+
+        function ensureMusicStarted() {
+            if (bgMusic.paused) {
+                bgMusic.play().then(function () {
+                    musicStartedOnce = true;
+                }).catch(function () {
+                    musicStartedOnce = false;
+                });
+            } else {
+                musicStartedOnce = true;
+            }
+        }
+
+        bgMusic.addEventListener('error', function () {
+            console.warn('Unable to load assets/mus_gambling.mp3', bgMusic.error);
+        });
+
+        document.getElementById('muteToggle').addEventListener('click', function () {
+            bgMusic.muted = !bgMusic.muted;
+            this.textContent = bgMusic.muted ? "🔇" : "🔊";
+        });
+
+        // ---- restart ----
+        document.getElementById('restartButton').addEventListener('click', resetGame);
+
+        function resetGame() {
+            uniqueItems.clear();
+            inventoryCount = 0;
+            luckRollCount = 0;
+            luckRollsRemaining = 0;
+            updateLuckMeter();
+            document.getElementById('inventoryList').innerHTML = '';
+            document.getElementById('inventoryCounter').innerText = "(0/" + INVENTORY_DISPLAY_MAX + ")";
+            var note = document.getElementById('allItemsNote');
+            if (note) note.remove();
+            allItemsMessageDisplayed = false;
+
+            balanceAmount = 0;
+            updateBalance(100);
+
+            document.getElementById('restartButton').style.display = 'none';
+            document.getElementById('completionModal').style.display = 'none';
+
+            resetLootBoxVisual();
+            document.getElementById('openingText').innerText = '';
+            document.getElementById('openingText').classList.remove('legendary');
+            document.getElementById('openButton').innerText = 'Open';
+            document.getElementById('openButton').style.display = 'block';
+        }
+
+        function resetLootBoxVisual() {
+            document.getElementById('lootBoxImage').src = "assets/lootboxclosed.gif";
+            document.getElementById('lootBoxImage').style.display = 'block';
+            var video = document.getElementById('lootBoxVideo');
+            video.style.display = 'none';
+            document.getElementById('lootBoxVisual').classList.remove('video-mode');
+            video.src = '';
+            document.getElementById('lootBoxVisual').classList.remove('shaking', 'reveal');
+        }
+
+        // ---- completion modal ----
+        document.getElementById('modalYes').addEventListener('click', function () {
+            resetGame();
+        });
+
+        document.getElementById('modalNo').addEventListener('click', function () {
+            document.getElementById('completionModal').style.display = 'none';
+            document.getElementById('restartButton').style.display = 'inline-block';
+        });
+
+        // ---- confetti ----
+        function launchConfetti() {
+            var layer = document.getElementById('confettiLayer');
+            var colors = ['#ff5f6d', '#ffc371', '#6100e0', '#d45cd6', '#2ecc71', '#3498db'];
+            for (var i = 0; i < 140; i++) {
+                (function () {
+                    var piece = document.createElement('div');
+                    piece.className = 'confetti-piece';
+                    piece.style.left = (Math.random() * 100) + 'vw';
+                    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    var duration = 2.5 + Math.random() * 2;
+                    var delay = Math.random() * 0.6;
+                    piece.style.animationDuration = duration + 's';
+                    piece.style.animationDelay = delay + 's';
+                    layer.appendChild(piece);
+                    setTimeout(function () {
+                        piece.remove();
+                    }, (duration + delay) * 1000 + 200);
+                })();
+            }
+        }
+
+        // ---- luck meter ----
+        var luckRollCount = 0;
+        var luckRollsRemaining = 0;
+
+        function updateLuckMeter() {
+            var fill = document.getElementById('luckMeterFill');
+            var status = document.getElementById('luckMeterStatus');
+
+            if (luckRollsRemaining > 0) {
+                fill.style.width = '100%';
+                fill.classList.add('active');
+                status.textContent = 'LUCK ACTIVE (' + luckRollsRemaining + ' left)';
+            } else {
+                fill.style.width = ((luckRollCount / LUCK_CHARGE_ROLLS) * 100) + '%';
+                fill.classList.remove('active');
+                status.textContent = luckRollCount + ' / ' + LUCK_CHARGE_ROLLS;
+            }
+        }
+
+        function prepareLuckForRoll() {
+            // Luck is consumed only during the five rolls after the meter
+            // has been charged by fifteen completed rolls.
+            return luckRollsRemaining > 0;
+        }
+
+        function finishLuckRoll() {
+            if (luckRollsRemaining > 0) {
+                luckRollsRemaining--;
+                if (luckRollsRemaining === 0) {
+                    luckRollCount = 0;
+                }
+            } else {
+                luckRollCount++;
+                if (luckRollCount >= LUCK_CHARGE_ROLLS) {
+                    luckRollCount = LUCK_CHARGE_ROLLS;
+                    luckRollsRemaining = LUCK_ACTIVE_ROLLS;
+                }
+            }
+            updateLuckMeter();
+        }
+
+        // ---- opening a loot box ----
+        function openLootBox() {
+            ensureMusicStarted();
+
+            if (musicPausedForSecret) {
+                musicPausedForSecret = false;
+                bgMusic.play().catch(function () { });
+            }
+
+            var cost = Math.floor(Math.random() * 25) + 10;
+            updateBalance(-cost);
+            createParticleAnimation(cost);
+
+            resetLootBoxVisual();
+            document.getElementById('lootBoxImage').src = "assets/lootboxopened.gif";
+            document.getElementById('lootBoxVisual').classList.add('shaking');
+            document.getElementById('openButton').style.display = "none";
+
+            var openingText = document.getElementById('openingText');
+            // Each roll starts in the normal text style. The legendary effect is
+            // applied only after the reward is known to be a newly unlocked item.
+            openingText.classList.remove('legendary');
+            openingText.innerText = "Opening...";
+            var openingInterval = setInterval(function () {
+                if (openingText.innerText === "Opening...") {
+                    openingText.innerText = "Opening.";
+                } else if (openingText.innerText === "Opening.") {
+                    openingText.innerText = "Opening..";
+                } else {
+                    openingText.innerText = "Opening...";
+                }
+            }, 250);
+
+            setTimeout(function () {
+                clearInterval(openingInterval);
+                document.getElementById('lootBoxVisual').classList.remove('shaking');
+
+                prepareLuckForRoll();
+                var reward = rollLootItem();
+
+                if (reward.video) {
+                    document.getElementById('lootBoxImage').style.display = 'none';
+                    var video = document.getElementById('lootBoxVideo');
+                    document.getElementById('lootBoxVisual').classList.add('video-mode');
+                    video.src = "https://www.youtube.com/embed/" + reward.video + "?autoplay=1&rel=0";
+                    video.style.display = 'block';
+
+                    bgMusic.pause();
+                    musicPausedForSecret = true;
+                } else {
+                    document.getElementById('lootBoxImage').src = reward.image;
+                }
+
+                document.getElementById('lootBoxVisual').classList.add('reveal');
+
+                var isNewItem = !uniqueItems.has(reward.name);
+                openingText.classList.toggle('legendary', isNewItem);
+                openingText.innerText = "You nabbed: " + reward.name + "!";
+                document.getElementById('openButton').innerText = "Open another!";
+                document.getElementById('openButton').style.display = "block";
+
+                updateInventory(reward);
+                finishLuckRoll();
+                scrollToBottom();
+            }, 3000);
+        }
+
+        var allItemsMessageDisplayed = false;
+        var uniqueItems = new Set();
+        var inventoryCount = 0;
+
+        function updateInventory(reward) {
+            if (uniqueItems.size >= TOTAL_UNIQUE_ITEMS) {
+                return;
+            }
+
+            var item = reward.name;
+            var inventoryList = document.getElementById('inventoryList');
+
+            if (!uniqueItems.has(item)) {
+                uniqueItems.add(item);
+                inventoryCount++;
+            }
+
+            var existingItem = document.getElementById('inventoryItem_' + item);
+
+            if (existingItem) {
+                var itemCount = parseInt(existingItem.getAttribute('data-count')) + 1;
+                existingItem.setAttribute('data-count', itemCount);
+                var label = existingItem.querySelector('a') || existingItem;
+                label.textContent = item + " x" + itemCount;
+            } else {
+                var newItem = document.createElement('li');
+                newItem.setAttribute('id', 'inventoryItem_' + item);
+                newItem.setAttribute('data-count', 1);
+
+                if (reward.video) {
+                    var link = document.createElement('a');
+                    link.href = "https://www.youtube.com/watch?v=" + reward.video;
+                    link.target = "_blank";
+                    link.rel = "noopener";
+                    link.textContent = item + " x1";
+                    newItem.appendChild(link);
+                } else {
+                    newItem.textContent = item + " x1";
+                }
+
+                inventoryList.appendChild(newItem);
+            }
+
+            document.getElementById('inventoryCounter').innerText = "(" + inventoryCount + "/" + INVENTORY_DISPLAY_MAX + ")";
+
+            if (!allItemsMessageDisplayed && uniqueItems.size === TOTAL_UNIQUE_ITEMS) {
+                allItemsMessageDisplayed = true;
+                var allItemsText = document.createElement('p');
+                allItemsText.id = 'allItemsNote';
+                allItemsText.innerHTML = "<strong>You've rolled every item!</strong>";
+                document.getElementById('inventoryContainer').appendChild(allItemsText);
+
+                launchConfetti();
+                document.getElementById('completionModal').style.display = 'flex';
+            }
+        }
+
+        document.getElementById('inventoryCounter').innerText = "(0/" + INVENTORY_DISPLAY_MAX + ")";
+        updateLuckMeter();
+
+        // ---- secret developer menu ----
+        (function () {
+            var secret = 'NOBODYHERE';
+            var typed = '';
+            var devMenu = document.getElementById('devMenu');
+            var devSelect = document.getElementById('devItemSelect');
+
+            LOOT_ITEMS.forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item.name;
+                option.textContent = item.name;
+                devSelect.appendChild(option);
+            });
+            var nothingOption = document.createElement('option');
+            nothingOption.value = NOTHING_ITEM.name;
+            nothingOption.textContent = NOTHING_ITEM.name;
+            devSelect.appendChild(nothingOption);
+
+            function getItemByName(name) {
+                if (name === NOTHING_ITEM.name) return NOTHING_ITEM;
+                return LOOT_ITEMS.find(function (item) { return item.name === name; });
+            }
+
+            function addDevItem(item) {
+                if (!item) return;
+                updateInventory(item);
+                scrollToBottom();
+            }
+
+            function triggerAllItems() {
+                if (!allItemsMessageDisplayed) {
+                    allItemsMessageDisplayed = true;
+                    var oldNote = document.getElementById('allItemsNote');
+                    if (oldNote) oldNote.remove();
+                    var allItemsText = document.createElement('p');
+                    allItemsText.id = 'allItemsNote';
+                    allItemsText.innerHTML = "<strong>You've rolled every item!</strong>";
+                    document.getElementById('inventoryContainer').appendChild(allItemsText);
+                }
+                launchConfetti();
+                document.getElementById('completionModal').style.display = 'flex';
+            }
+
+            function openDevMenu() {
+                devMenu.classList.add('open');
+                devMenu.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeDevMenu() {
+                devMenu.classList.remove('open');
+                devMenu.setAttribute('aria-hidden', 'true');
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key && event.key.length === 1) {
+                    typed = (typed + event.key).slice(-secret.length).toUpperCase();
+                    if (typed === secret) {
+                        typed = '';
+                        openDevMenu();
+                    }
+                }
+                if (event.key === 'Escape' && devMenu.classList.contains('open')) {
+                    closeDevMenu();
+                }
+            });
+
+            document.getElementById('devAddItem').addEventListener('click', function () {
+                addDevItem(getItemByName(devSelect.value));
+            });
+
+            document.getElementById('devAddRandom').addEventListener('click', function () {
+                addDevItem(LOOT_ITEMS[Math.floor(Math.random() * LOOT_ITEMS.length)]);
+            });
+
+            document.getElementById('devAddAll').addEventListener('click', function () {
+                LOOT_ITEMS.forEach(addDevItem);
+                addDevItem(NOTHING_ITEM);
+                scrollToBottom();
+            });
+
+            document.getElementById('devTriggerAll').addEventListener('click', triggerAllItems);
+            document.getElementById('devClose').addEventListener('click', closeDevMenu);
+            devMenu.addEventListener('click', function (event) {
+                if (event.target === devMenu) closeDevMenu();
+            });
+        })();
+    </script>
+</body>
+
+</html>
