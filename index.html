@@ -13,16 +13,6 @@
     <meta property="og:url" content="https://beachweak.github.io/gambling">
     <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
     <style>
-        /* ---------- Base / scaling fix ----------
-           Everything below is sized in rem, and the root font-size is
-           tied to the viewport width with clamp(). That's the actual fix
-           for the "fine on Windows, zoomed in on Mac" issue: the old file
-           used fixed px values everywhere, which render at a fixed
-           physical size regardless of the screen's own resolution. A
-           Windows laptop with a 1920px-wide display and a MacBook with a
-           1440px-wide display would show those same px values as very
-           different proportions of the screen. Scaling everything off
-           the root rem value keeps it visually consistent across both. */
 
         * {
             box-sizing: border-box;
@@ -61,8 +51,6 @@
             max-width: min(70vw, 420px);
             height: auto;
         }
-
-        /* ---------- Top-left stack: balance above inventory ---------- */
 
         #topLeftPanel {
             position: fixed;
@@ -517,8 +505,6 @@
             color: #f2f2f7;
         }
 
-        /* ---------- Confetti ---------- */
-
         #confettiLayer {
             position: fixed;
             inset: 0;
@@ -549,8 +535,6 @@
                 opacity: 0.4;
             }
         }
-
-        /* ---------- Secret developer menu ---------- */
 
         #devMenu {
             position: fixed;
@@ -783,17 +767,6 @@
     </footer>
 
     <script>
-        /* =========================================================
-           LOOT TABLE
-           Give each item a "chance" between 0 and 1 (e.g. 0.01 = 1%,
-           very rare; 0.5 = 50%, very common). You don't need the
-           chances to add up to 1 — whatever isn't accounted for by
-           named items automatically becomes the chance of rolling
-           "Nothing". Just add more objects to this array as you add
-           items; everything else (inventory list, counters, the
-           "collected everything" check) reads from its length
-           automatically.
-        ========================================================= */
 
         const LOOT_ITEMS = [
             // -- common tier --
@@ -902,9 +875,6 @@
         function rollLootItem() {
             const allItems = LOOT_ITEMS;
 
-            // While luck is active, there is a flat 55% chance to receive one
-            // of the items the player has not unlocked yet. The missing item
-            // is selected uniformly so each missing item gets an equal shot.
             if (luckRollsRemaining > 0) {
                 const missingItems = allItems.filter(function (item) {
                     return !uniqueItems.has(item.name);
@@ -920,8 +890,6 @@
 
         const TOTAL_UNIQUE_ITEMS = LOOT_ITEMS.length;
         const INVENTORY_DISPLAY_MAX = 75;
-
-        /* ========================================================= */
 
         var balanceAmount = 100;
 
@@ -952,8 +920,7 @@
             var inventoryContainer = document.getElementById('inventoryContainer');
             inventoryContainer.scrollTop = inventoryContainer.scrollHeight;
         }
-
-        // ---- animated tiled background ----
+        
         var bgX = 0;
         var bgY = 0;
         var bgDirection = 1;
@@ -1061,7 +1028,6 @@
             document.getElementById('restartButton').style.display = 'inline-block';
         });
 
-        // ---- confetti ----
         function launchConfetti() {
             var layer = document.getElementById('confettiLayer');
             var colors = ['#ff5f6d', '#ffc371', '#6100e0', '#d45cd6', '#2ecc71', '#3498db'];
@@ -1103,8 +1069,6 @@
         }
 
         function prepareLuckForRoll() {
-            // Luck is consumed only during the five rolls after the meter
-            // has been charged by fifteen completed rolls.
             return luckRollsRemaining > 0;
         }
 
@@ -1124,7 +1088,6 @@
             updateLuckMeter();
         }
 
-        // ---- opening a loot box ----
         function openLootBox() {
             ensureMusicStarted();
 
@@ -1143,8 +1106,6 @@
             document.getElementById('openButton').style.display = "none";
 
             var openingText = document.getElementById('openingText');
-            // Each roll starts in the normal text style. The legendary effect is
-            // applied only after the reward is known to be a newly unlocked item.
             openingText.classList.remove('legendary');
             openingText.innerText = "Opening...";
             var openingInterval = setInterval(function () {
@@ -1251,7 +1212,6 @@
         document.getElementById('inventoryCounter').innerText = "(0/" + INVENTORY_DISPLAY_MAX + ")";
         updateLuckMeter();
 
-        // ---- secret developer menu ----
         (function () {
             var secret = 'NOBODYHERE';
             var typed = '';
